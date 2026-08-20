@@ -1,7 +1,6 @@
 import type { DbClient } from '../db/pool.js';
 import {
   deleteAllCandlesForPool,
-  getSwapsForPool,
   upsertCandles,
   type CandleUpsert,
 } from '../db/queries.js';
@@ -20,9 +19,30 @@ export async function rebuildCandlesForPool(
   listing: ListingRow,
 ): Promise<number> {
   await deleteAllCandlesForPool(db, poolId);
-  const swaps = await getSwapsForPool(db, poolId);
+
+  const isMain =
+    listing.main_pool_id.equals(poolId) ||
+    listing.main_pool_id.toString('hex') === poolId.toString('hex');
+  const key = isMain
+    ? listing.main_pool_key
+    : listing.side_pool_key ?? listing.main_pool_key;
   const tokenAddr = listing.token_address as Address;
-  const tok0 = tokenIsCurrency0(listing.main_pool_key, tokenAddr);
+  const tok0 = tokenIsCurrency0(key, tokenAddr);
+  const pairIsToken0 = !tok0;
+  const pairDecimals = isMain ? listing.pair_decimals : 6;
+
+  const { rows: swaps } = await db.query<{
+    block_time: Date;
+    amount0: string;
+    amount1: string;
+    sqrt_price_x96: string;
+  }>(
+    `SELECT block_time, amount0::text, amount1::text, sqrt_price_x96::text
+     FROM swaps WHERE pool_id = $1
+     ORDER BY block_number ASC, log_index ASC`,
+    [poolId],
+  );
+
   const map = new Map<string, CandleUpsert>();
 
   for (const s of swaps) {
@@ -31,17 +51,17 @@ export async function rebuildCandlesForPool(
     const sqrt = BigInt(s.sqrt_price_x96);
     const price = priceWadFromSqrt(
       sqrt,
-      s.pair_is_token0,
-      s.token_decimals,
-      s.pair_decimals,
+      pairIsToken0,
+      listing.token_decimals,
+      pairDecimals,
     );
     const vol = pairVolumeFromAmounts(amount0, amount1, tok0);
     for (const tf of CANDLE_TIMEFRAMES) {
       const start = bucketStart(s.block_time, tf);
-      const key = `${tf}:${start.toISOString()}`;
-      const existing = map.get(key);
+      const mapKey = `${tf}:${start.toISOString()}`;
+      const existing = map.get(mapKey);
       if (!existing) {
-        map.set(key, {
+        map.set(mapKey, {
           pool_id: poolId,
           timeframe: tf,
           bucket_start: start,

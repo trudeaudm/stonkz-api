@@ -3,5 +3,5 @@ import { config } from './config/env.js';
 
 export const logger = pino({
   level: config.logLevel,
-  base: { service: 'stonkz-api-indexer' },
+  base: { service: config.serviceName },
 });

@@ -1,9 +1,9 @@
 {
   "name": "stonkz-api",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "STONKZ chain indexer — Postgres-backed listing/swap/candle store (Step A)",
+  "description": "STONKZ chain indexer + public read API (Step B)",
   "engines": {
     "node": ">=22"
   },
@@ -13,23 +13,32 @@
     "migrate:down": "node-pg-migrate down",
     "migrate:create": "node-pg-migrate create",
     "worker": "tsx src/index.ts",
+    "api": "tsx src/api/index.ts",
+    "start": "node dist/api/index.js",
     "cli": "tsx src/cli.ts",
     "status": "tsx src/cli.ts status",
     "backfill": "tsx src/cli.ts backfill",
     "rebuild-candles": "tsx src/cli.ts rebuild-candles",
     "test": "tsx --test src/**/*.test.ts",
     "verify:local-db": "tsx scripts/verify-local.ts",
-    "verify:live": "tsx scripts/verify-live.ts"
+    "verify:live": "tsx scripts/verify-live.ts",
+    "verify:step-b": "tsx scripts/verify-step-b.ts"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/rate-limit": "^11.2.0",
+    "@fastify/swagger": "^9.8.1",
+    "@fastify/swagger-ui": "^6.1.1",
     "commander": "^14.0.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.12.1",
     "node-pg-migrate": "^8.0.3",
     "pg": "^8.16.3",
     "pino": "^9.9.0",
     "viem": "^2.55.15"
   },
   "devDependencies": {
-    "@types/node": "^22.17.2",
+    "@types/node": "^22.20.1",
     "@types/pg": "^8.15.5",
     "embedded-postgres": "18.4.0-beta.17",
     "tsx": "^4.20.4",

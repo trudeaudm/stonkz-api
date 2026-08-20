@@ -8,6 +8,10 @@ let pool: pg.Pool | null = null;
 export function getPool(): pg.Pool {
   if (!pool) {
     pool = new Pool({ connectionString: config.databaseUrl });
+    pool.on('error', (err) => {
+      // Idle clients can error when Postgres restarts; don't crash the process.
+      console.error('pg pool idle client error', err.message);
+    });
   }
   return pool;
 }

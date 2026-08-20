@@ -74,26 +74,32 @@ function buildCandleUpserts(
   listing: ListingRow,
   poolId: Buffer,
   swaps: SwapInsert[],
+  isMain: boolean,
 ): CandleUpsert[] {
   const map = new Map<string, CandleUpsert>();
   const tokenAddr = listing.token_address as Address;
-  const mainKey = listing.main_pool_key;
-  const tok0 = tokenIsCurrency0(mainKey, tokenAddr);
+  const key = isMain
+    ? listing.main_pool_key
+    : listing.side_pool_key ?? listing.main_pool_key;
+  const tok0 = tokenIsCurrency0(key, tokenAddr);
+  const pairIsToken0 = !tok0;
+  // Side pool pairs USDG (6 dec); main uses listing.pair_decimals (ETH=18).
+  const pairDecimals = isMain ? listing.pair_decimals : 6;
 
   for (const s of swaps) {
     for (const tf of CANDLE_TIMEFRAMES) {
       const start = bucketStart(s.block_time, tf);
-      const key = `${tf}:${start.toISOString()}`;
-      const existing = map.get(key);
+      const keyStr = `${tf}:${start.toISOString()}`;
+      const existing = map.get(keyStr);
       const price = priceWadFromSqrt(
         s.sqrt_price_x96,
-        listing.pair_is_token0,
+        pairIsToken0,
         listing.token_decimals,
-        listing.pair_decimals,
+        pairDecimals,
       );
       const vol = pairVolumeFromAmounts(s.amount0, s.amount1, tok0);
       if (!existing) {
-        map.set(key, {
+        map.set(keyStr, {
           pool_id: poolId,
           timeframe: tf,
           bucket_start: start,
@@ -184,7 +190,12 @@ export async function scanSwapsForPool(
             decoded.map((s) => s.blockNumber),
           );
           const tokenAddr = target.listing.token_address as Address;
-          const tok0 = tokenIsCurrency0(target.listing.main_pool_key, tokenAddr);
+          const poolKey = target.isMain
+            ? target.listing.main_pool_key
+            : target.listing.side_pool_key ?? target.listing.main_pool_key;
+          const tok0 = tokenIsCurrency0(poolKey, tokenAddr);
+          const pairIsToken0 = !tok0;
+          const pairDecimals = target.isMain ? target.listing.pair_decimals : 6;
           const swapRows: SwapInsert[] = decoded.map((ev) => ({
             pool_id: target.poolId,
             listing_id: target.listing.id,
@@ -201,9 +212,9 @@ export async function scanSwapsForPool(
             liquidity: ev.liquidity,
             price_wad: priceWadFromSqrt(
               ev.sqrtPriceX96,
-              target.listing.pair_is_token0,
+              pairIsToken0,
               target.listing.token_decimals,
-              target.listing.pair_decimals,
+              pairDecimals,
             ),
             pair_volume: pairVolumeFromAmounts(ev.amount0, ev.amount1, tok0),
             swap_direction: traderDirectionFromAmounts(
@@ -215,7 +226,7 @@ export async function scanSwapsForPool(
           swapsFound += await insertSwapsBatch(tx, swapRows);
           candlesUpserted += await upsertCandles(
             tx,
-            buildCandleUpserts(target.listing, target.poolId, swapRows),
+            buildCandleUpserts(target.listing, target.poolId, swapRows, target.isMain),
           );
         }
         await setCursor(tx, scope, to);

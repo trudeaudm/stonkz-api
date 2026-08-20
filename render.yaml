@@ -1,4 +1,4 @@
-# STONKZ API — Render Blueprint (Step A: indexer worker only)
+# STONKZ API — Render Blueprint (Step B: indexer worker + read API)
 # Validate: render blueprints validate render.yaml
 
 databases:
@@ -17,6 +17,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: SERVICE_NAME
+        value: stonkz-api-indexer
       - key: CHAIN_ID
         value: "4663"
       - key: RPC_URL
@@ -29,5 +31,46 @@ services:
         value: "5"
       - key: POLL_INTERVAL_MS
         value: "2000"
+      - key: LOG_LEVEL
+        value: info
+
+  - type: web
+    name: stonkz-api-web
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: SERVICE_NAME
+        value: stonkz-api-web
+      - key: CHAIN_ID
+        value: "4663"
+      - key: RPC_URL
+        value: https://rpc.mainnet.chain.robinhood.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stonkz-api-db
+          property: connectionString
+      - key: PORT
+        value: "10000"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: CORS_ORIGINS
+        value: https://stonkz.green,https://www.stonkz.green,https://stonkz.meme,http://localhost:3000
+      - key: RATE_LIMIT_MAX
+        value: "120"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: CACHE_TTL_SPOT_MS
+        value: "3000"
+      - key: CACHE_TTL_CANDLES_MS
+        value: "5000"
+      - key: CACHE_TTL_LISTINGS_MS
+        value: "3000"
+      - key: CANDLES_MAX_ROWS
+        value: "500"
       - key: LOG_LEVEL
         value: info

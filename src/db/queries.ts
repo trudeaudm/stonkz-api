@@ -186,8 +186,9 @@ export async function insertSwapsBatch(
 ): Promise<number> {
   if (swaps.length === 0) return 0;
   let inserted = 0;
+  const notifyPayloads: string[] = [];
   for (const s of swaps) {
-    const res = await client.query(
+    const res = await client.query<{ id: string }>(
       `INSERT INTO swaps (
         pool_id, listing_id, is_main_pool, block_number, block_time,
         tx_hash, log_index, sender, amount0, amount1,
@@ -195,7 +196,8 @@ export async function insertSwapsBatch(
       ) VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
       )
-      ON CONFLICT (tx_hash, log_index) DO NOTHING`,
+      ON CONFLICT (tx_hash, log_index) DO NOTHING
+      RETURNING id::text`,
       [
         s.pool_id,
         s.listing_id,
@@ -213,7 +215,24 @@ export async function insertSwapsBatch(
         s.swap_direction,
       ],
     );
-    inserted += res.rowCount ?? 0;
+    if ((res.rowCount ?? 0) > 0) {
+      inserted += 1;
+      notifyPayloads.push(
+        JSON.stringify({
+          listing_id: s.listing_id,
+          pool_id: `0x${s.pool_id.toString('hex')}`,
+          is_main_pool: s.is_main_pool,
+          sqrt_price_x96: s.sqrt_price_x96.toString(),
+          liquidity: s.liquidity.toString(),
+          block_number: s.block_number.toString(),
+          block_time: s.block_time.toISOString(),
+          swap_direction: s.swap_direction,
+        }),
+      );
+    }
+  }
+  for (const payload of notifyPayloads) {
+    await client.query(`SELECT pg_notify('stonkz_swaps', $1)`, [payload]);
   }
   return inserted;
 }
