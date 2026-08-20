@@ -91,7 +91,7 @@ exports.up = (pgm) => {
   pgm.createIndex('swaps', ['pool_id', { name: 'block_number', sort: 'DESC' }]);
   pgm.sql(`
     COMMENT ON TABLE swaps IS
-      'Amounts come from the PoolManager Swap EVENT ONLY. ERC-20 Transfer amounts describe the SAME movement and must never be summed with these.';
+      'Amounts come from the PoolManager Swap EVENT ONLY. ERC-20 Transfer amounts describe the SAME movement and must never be summed with these. amount0/amount1 are v4 BalanceDelta for the swap caller: positive token-side = trader BUY.';
   `);
 
   pgm.createTable('candles', {

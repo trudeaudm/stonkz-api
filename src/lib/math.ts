@@ -106,6 +106,24 @@ export function pairVolumeFromAmounts(
   return tokenIsCurrency0Flag ? abs1 : abs0;
 }
 
+/**
+ * Trader direction for the launch token from PoolManager Swap amounts.
+ *
+ * On Robinhood's v4 PoolManager, amount0/amount1 are BalanceDelta for the
+ * swap caller (not pool inventory): positive token-side ⇒ caller is owed
+ * tokens (buy); negative ⇒ caller owes tokens (sell). Confirmed against
+ * ERC-20 Transfer (PM → trader on buys). Same rule as stonkz-site
+ * useMainPoolSpot.swapDirection.
+ */
+export function traderDirectionFromAmounts(
+  amount0: bigint,
+  amount1: bigint,
+  tokenIsCurrency0Flag: boolean,
+): 'buy' | 'sell' {
+  const tokenDelta = tokenIsCurrency0Flag ? amount0 : amount1;
+  return tokenDelta > 0n ? 'buy' : 'sell';
+}
+
 export function bucketStart(date: Date, timeframe: string): Date {
   const sec = Math.floor(date.getTime() / 1000);
   let bucketSec: number;

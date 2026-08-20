@@ -93,6 +93,10 @@ Any error leaves the cursor unchanged (enforced via per-chunk transactions).
 Amounts are from the PoolManager **Swap event only**. ERC-20 Transfer amounts
 describe the same movement and must never be summed with Swap amounts.
 
+`swap_direction` is trader-facing (`buy`|`sell`) for the launch token, derived
+from the token-side BalanceDelta: **positive ⇒ buy**, negative ⇒ sell (same
+rule as `stonkz-site` `useMainPoolSpot.swapDirection`).
+
 ## Generations seed
 
 Values cite `stonkz.green` `deploys/official/addresses.json` for shared wiring

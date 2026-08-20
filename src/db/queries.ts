@@ -191,9 +191,9 @@ export async function insertSwapsBatch(
       `INSERT INTO swaps (
         pool_id, listing_id, is_main_pool, block_number, block_time,
         tx_hash, log_index, sender, amount0, amount1,
-        sqrt_price_x96, tick, liquidity
+        sqrt_price_x96, tick, liquidity, swap_direction
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
       )
       ON CONFLICT (tx_hash, log_index) DO NOTHING`,
       [
@@ -210,6 +210,7 @@ export async function insertSwapsBatch(
         s.sqrt_price_x96.toString(),
         s.tick,
         s.liquidity.toString(),
+        s.swap_direction,
       ],
     );
     inserted += res.rowCount ?? 0;

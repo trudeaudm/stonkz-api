@@ -65,6 +65,8 @@ export type SwapInsert = {
   liquidity: bigint;
   price_wad: bigint;
   pair_volume: bigint;
+  /** Trader-facing launch-token direction from Swap BalanceDelta. */
+  swap_direction: 'buy' | 'sell';
 };
 
 export type CandleTimeframe = '1m' | '5m' | '1h' | '4h' | '1d';

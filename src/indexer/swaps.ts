@@ -18,6 +18,7 @@ import {
   pairVolumeFromAmounts,
   priceWadFromSqrt,
   tokenIsCurrency0,
+  traderDirectionFromAmounts,
 } from '../lib/math.js';
 import {
   CANDLE_TIMEFRAMES,
@@ -205,6 +206,11 @@ export async function scanSwapsForPool(
               target.listing.pair_decimals,
             ),
             pair_volume: pairVolumeFromAmounts(ev.amount0, ev.amount1, tok0),
+            swap_direction: traderDirectionFromAmounts(
+              ev.amount0,
+              ev.amount1,
+              tok0,
+            ),
           }));
           swapsFound += await insertSwapsBatch(tx, swapRows);
           candlesUpserted += await upsertCandles(
